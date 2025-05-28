@@ -11,18 +11,10 @@ def generate_subcategories(max_pax, max_kinder, min_pax):
         if not kinder_range:
             continue
 
-        if len(kinder_range) > 1:
-            kinder_text = f"{kinder_range[0]}-{kinder_range[-1]} Kinder"
+        for k in kinder_range:
             subcategories.append({
                 'erwachsene': erwachsene,
-                'kinder_text': kinder_text,
-                'min_pax': min_pax
-            })
-        else:
-            kinder_text = f"{kinder_range[0]} Kinder"
-            subcategories.append({
-                'erwachsene': erwachsene,
-                'kinder_text': kinder_text,
+                'kinder': k,
                 'min_pax': min_pax
             })
 
@@ -68,7 +60,7 @@ subcategories = generate_subcategories(
 if subcategories:
     st.markdown("### Gültige Subkategorien")
     for sub in subcategories:
-        st.write(f"{sub['erwachsene']} Erwachsener + {sub['kinder_text']}, min. Pax = {sub['min_pax']}")
+        st.write(f"{sub['erwachsene']} Erwachsener + {sub['kinder']} Kinder, min. Pax = {sub['min_pax']}")
 
     st.markdown("### JSON Output")
     st.code(json.dumps(subcategories, indent=2), language="json")
