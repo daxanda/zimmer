@@ -1,32 +1,55 @@
 import streamlit as st
+import json
 
-# Initialwerte setzen (nur beim ersten Laden)
-if 'max_pax' not in st.session_state:
-    st.session_state.max_pax = 8
-if 'max_kinder' not in st.session_state:
-    st.session_state.max_kinder = 3
-if 'min_pax' not in st.session_state:
-    st.session_state.min_pax = 2
+st.set_page_config(page_title="Zimmerkonfigurator", layout="centered")
 
-# Sliders anzeigen
-st.session_state.max_pax = st.slider("Maximale Gästezahl (max_pax)", 1, 20, st.session_state.max_pax)
-st.session_state.max_kinder = st.slider("Maximale Kinderzahl (max_kinder)", 0, st.session_state.max_pax - 1, st.session_state.max_kinder)
-st.session_state.min_pax = st.slider("Mindestbelegung (min_pax)", 1, st.session_state.max_pax, st.session_state.min_pax)
+st.title("🛏️ Zimmerbelegungskonfigurator")
 
-# Logik überprüfen und korrigieren
-rerun = False
+# Eingaberegler
+max_pax = st.slider("Maximale Gesamtbelegung (max_pax)", min_value=1, max_value=20, value=6)
+max_kinder = st.slider("Maximale Kinderanzahl (max_kinder)", min_value=0, max_value=max_pax - 1, value=2)
+min_pax = st.slider("Mindestbelegung (min_pax)", min_value=1, max_value=max_pax, value=3)
 
-if st.session_state.max_kinder >= st.session_state.max_pax:
-    st.session_state.max_kinder = st.session_state.max_pax - 1
-    rerun = True
+# Logik
+feedback = ""
+subcategories = []
+json_output = []
 
-if st.session_state.min_pax > st.session_state.max_pax:
-    st.session_state.min_pax = st.session_state.max_pax
-    rerun = True
+if max_kinder >= max_pax:
+    feedback = "❗ Das Zimmer muss mindestens einen Erwachsenen enthalten. max_kinder darf nicht ≥ max_pax sein."
+elif min_pax > max_pax:
+    feedback = "❗ Mindestbelegung darf max_pax nicht überschreiten."
+else:
+    for erwachsene in range(1, max_pax + 1):
+        max_verbleibende_kinder = min(max_kinder, max_pax - erwachsene)
+        valid_kinder_range = [k for k in range(0, max_verbleibende_kinder + 1) if erwachsene + k >= min_pax]
 
-if st.session_state.min_pax < 1:
-    st.session_state.min_pax = 1
-    rerun = True
+        if len(valid_kinder_range) > 1:
+            kinder_min = valid_kinder_range[0]
+            kinder_max = valid_kinder_range[-1]
+            subcategories.append(f"{erwachsene} Erwachsener + {kinder_min}–{kinder_max} Kinder, min. Pax = {min_pax}")
+            json_output.append({
+                "erwachsene": erwachsene,
+                "kinder_min": kinder_min,
+                "kinder_max": kinder_max,
+                "min_pax": min_pax
+            })
+        elif len(valid_kinder_range) == 1:
+            kinder = valid_kinder_range[0]
+            subcategories.append(f"{erwachsene} Erwachsener + {kinder} Kinder, min. Pax = {min_pax}")
+            json_output.append({
+                "erwachsene": erwachsene,
+                "kinder_min": kinder,
+                "kinder_max": kinder,
+                "min_pax": min_pax
+            })
 
-if rerun:
-    st.rerun()
+# Ausgabe
+if feedback:
+    st.error(feedback)
+else:
+    st.subheader("✅ Gültige Subkategorien")
+    for line in subcategories:
+        st.markdown(f"- {line}")
+    st.subheader("📦 JSON für Integration")
+    st.code(json.dumps(json_output, indent=2), language="json")
