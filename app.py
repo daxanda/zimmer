@@ -1,8 +1,10 @@
 import streamlit as st
 import json
+from collections import defaultdict
 
 def generate_subcategories(max_pax, max_kinder, min_pax):
     subcategories = []
+    json_groups = defaultdict(list)
 
     for erwachsene in range(1, max_pax + 1):
         max_verbleibende_kinder = min(max_kinder, max_pax - erwachsene)
@@ -17,8 +19,9 @@ def generate_subcategories(max_pax, max_kinder, min_pax):
                 'kinder': k,
                 'min_pax': min_pax
             })
+            json_groups[erwachsene].append(k)
 
-    return subcategories
+    return subcategories, json_groups
 
 # SessionState Initialisierung
 if 'max_pax' not in st.session_state:
@@ -51,7 +54,7 @@ if rerun:
     st.rerun()
 
 # Ausgabe
-subcategories = generate_subcategories(
+subcategories, json_groups = generate_subcategories(
     st.session_state.max_pax,
     st.session_state.max_kinder,
     st.session_state.min_pax
@@ -62,7 +65,17 @@ if subcategories:
     for sub in subcategories:
         st.write(f"{sub['erwachsene']} Erwachsener + {sub['kinder']} Kinder, min. Pax = {sub['min_pax']}")
 
-    st.markdown("### JSON Output")
-    st.code(json.dumps(subcategories, indent=2), language="json")
+    # Zusammengefasster JSON-Output für Programmierer
+    compressed_json = [
+        {
+            "erwachsene": erwachsene,
+            "kinder": f"{min(kinder)}-{max(kinder)}" if len(set(kinder)) > 1 else f"{kinder[0]}",
+            "min_pax": st.session_state.min_pax
+        }
+        for erwachsene, kinder in json_groups.items()
+    ]
+
+    st.markdown("### JSON Output (komprimiert)")
+    st.code(json.dumps(compressed_json, indent=2), language="json")
 else:
     st.info("Keine gültigen Kombinationen für die aktuelle Einstellung.")
